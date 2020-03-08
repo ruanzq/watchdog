@@ -23,6 +23,9 @@ G = {
     # 是否打印原始数据
     "isR": False,
 
+    # 是否反向选择输出结果
+    "isV": False,
+
     # 是否检测证书
     "isCert": False,
 
@@ -79,15 +82,15 @@ def test(func):
     """
 
     def wrapper(urllist):
-        msg = []
+        trueset = []
+        falseset = []
         for url in urllist:
             result = func(url)
-            if result == "":
-                # 略过不符规则的
-                continue
+            if result[0]:
+                trueset.append(result[1])
             else:
-                msg.append(result)
-        return msg
+                falseset.append(result[1])
+        return [trueset,falseset]
 
     return wrapper
 
@@ -102,11 +105,11 @@ def verifyAddress(url):
     try:
         code = request.urlopen(url, timeout=5).getcode()
         if code < 400:
-            result = ""
+            result = [False,(url, code)]
         else:
-            result = (url, code)
+            result = [True,(url, code)]
     except Exception as e:
-        result = (url, e)
+        result = [True,(url, e)]
     return result
 
 
@@ -145,15 +148,15 @@ def verifyCert(url):
     """
     cert = _getCert(url)
     if isinstance(cert, Exception):
-        result = (url, cert)
+        result = [True,(url, cert)]
     else:
         certTime = datetime.datetime.strptime(str(cert.get_notAfter()[: -1], encoding='utf-8'),
                                               '%Y%m%d%H%M%S') + datetime.timedelta(hours=8)
         TimeRemained = certTime - datetime.datetime.now()
         if TimeRemained.days > G['expire']:
-            result = ""
+            result = [False,(url,TimeRemained.days)]
         else:
-            result = (url, TimeRemained.days)
+            result = [True,(url, TimeRemained.days)]
     return result
 
 
@@ -243,6 +246,7 @@ def setStat(args):
     isSend = re.search(r'e', switch)
     isPrint = re.search(r'p', switch)
     isR = re.search(r'r', switch)
+    isV = re.search(r'v', switch)
     if not isCert and not isUrl:
         printHelpExit()
     if isSend:
@@ -256,6 +260,8 @@ def setStat(args):
         G['isPrint'] = True
     if isR:
         G['isR'] = True
+    if isV:
+        G['isV'] = True
 
 
 def printHelpExit():
@@ -273,6 +279,7 @@ Switch:
     p 将格式化结果打印在屏幕上
     e 将结果以邮件发送，必须指定emailconf文件的路径。
     r 将结果以python原生格式，输出到屏幕
+    v 反向选择结果，配合选项p和r使用
 emailconfig format:
     server:domain:port:account:password
     # 不以server:开头的行，均视为邮件接收者的一员。
