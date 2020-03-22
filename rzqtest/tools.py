@@ -178,7 +178,7 @@ def setMailConfig(args):
                     continue
                 elif i.startswith("server:"):
                     i = i.split(":")
-                    G['smtpSever'] = i[1]
+                    G['smtpServer'] = i[1]
                     G['smtpPort'] = i[2]
                     G['account'] = i[3]
                     G['password'] = i[4]
@@ -198,23 +198,18 @@ def send(content, subject):
     :param subject:邮件主题
     :return:None
     """
-    try:
-        con = smtplib.SMTP_SSL(G['smtpSever'], G['smtpPort'])
-        con.login(G['account'], G['password'])
-        text = MIMEText(content)
-        shell = MIMEMultipart()
-        shell['Subject'] = subject
-        shell['From'] = G['account']
-        shell['to'] = G['receivers']
-        shell.attach(text)
-        con.sendmail(G['account'], G['receivers'], shell.as_string())
-    except Exception as e:
-        print(e,G)
-
-
+    con = smtplib.SMTP_SSL(G['smtpServer'], G['smtpPort'])
+    con.login(G['account'], G['password'])
+    text = MIMEText(content,'plain','utf-8')
+    shell = MIMEMultipart()
+    shell['Subject'] = subject
+    shell['From'] = G['account']
+    shell['to'] = ",".join(G['receivers'])
+    shell.attach(text)
+    con.sendmail(G['account'],G['receivers'], shell.as_string())
+    con.close()
 def makeRecords(record, col_1,col_2):
     """
-
     :param record:
     :param col_1:
     :param col_2:
@@ -276,10 +271,10 @@ Format:
 Switch:
     c[number] 启用证书检测和证书剩余时间上限，number不可省，如c200，会返回小于200天的站点信息
     u 启用url可访问性检测。
-    p 将格式化结果打印在屏幕上
-    e 将结果以邮件发送，必须指定emailconf文件的路径。
-    r 将结果以python原生格式，输出到屏幕
-    v 反向选择结果，配合选项p和r使用
+    p 将格式化结果打印在屏幕上。
+    e 将格式化结果以邮件发送，必须指定emailconf文件的路径，可以配合选项v使用。
+    r 将结果以python原生格式，输出到屏幕。
+    v 反向选择结果，配合选项p，r，e使用。
 emailconfig format:
     server:domain:port:account:password
     # 不以server:开头的行，均视为邮件接收者的一员。
